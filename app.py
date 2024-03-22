@@ -41,6 +41,13 @@ if not cur.fetchall():
 def index():
     return render_template('index.html')
 
+# Endpoint to delete colleague
+@app.route('/delete_colleague/<int:colleague_id>', methods=['DELETE'])
+def delete_colleague(colleague_id):
+    cur.execute("DELETE FROM colleagues WHERE id=?", (colleague_id,))
+    conn.commit()
+    return jsonify({'message': 'Colleague deleted successfully'})
+
 # Endpoint to add a new task
 @app.route('/add_task', methods=['POST'])
 def add_task():
