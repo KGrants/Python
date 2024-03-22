@@ -14,9 +14,9 @@ cur.execute('''CREATE TABLE IF NOT EXISTS tasks (
                description TEXT NOT NULL,
                status TEXT NOT NULL,
                category_id INTEGER NOT NULL,
-               colleague_id INTEGER,  -- Add colleague_id column
+               colleague_id INTEGER,
                FOREIGN KEY (category_id) REFERENCES categories(id),
-               FOREIGN KEY (colleague_id) REFERENCES colleagues(id)  -- Add foreign key constraint
+               FOREIGN KEY (colleague_id) REFERENCES colleagues(id)
                )''')
 
 # Create categories table if not exists
@@ -47,8 +47,7 @@ def add_task():
     name = request.form['name']
     description = request.form['description']
     category_name = request.form['category_id']
-    colleague_id = request.form.get('colleague_id')  # Get colleague ID from form
-    # Retrieve category ID based on the category name
+    colleague_id = request.form.get('colleague_id')
     cur.execute("SELECT id FROM categories WHERE name=?", (category_name,))
     category_id = cur.fetchone()[0]
     cur.execute("INSERT INTO tasks (name, description, status, category_id, colleague_id) VALUES (?, ?, 'to-do', ?, ?)", (name, description, category_id, colleague_id))
@@ -60,7 +59,7 @@ def add_task():
 def get_tasks():
     cur.execute("SELECT tasks.id, tasks.name, tasks.description, tasks.status, categories.name, colleagues.name FROM tasks INNER JOIN categories ON tasks.category_id = categories.id LEFT JOIN colleagues ON tasks.colleague_id = colleagues.id")
     tasks = cur.fetchall()
-    tasks_list = [{'id': task[0], 'name': task[1], 'description': task[2], 'status': task[3], 'category': task[4], 'with': task[5]} for task in tasks]  # Include colleague's name
+    tasks_list = [{'id': task[0], 'name': task[1], 'description': task[2], 'status': task[3], 'category': task[4], 'with': task[5]} for task in tasks]
     return jsonify(tasks_list)
 
 # Endpoint to delete a task
@@ -100,6 +99,42 @@ def add_colleague():
     cur.execute("INSERT INTO colleagues (name) VALUES (?)", (name,))
     conn.commit()
     return jsonify({'message': 'Colleague added successfully'})
+
+# Endpoint to assign a task to a colleague
+@app.route('/assign_employee/<int:task_id>/<int:colleague_id>', methods=['PUT'])
+def assign_employee(task_id, colleague_id):
+    cur.execute("UPDATE tasks SET colleague_id=? WHERE id=?", (colleague_id, task_id))
+    conn.commit()
+    return jsonify({'message': 'Employee assigned successfully'})
+
+# Endpoint to add a new project
+@app.route('/add_project', methods=['POST'])
+def add_project():
+    project_name = request.form['name']
+    cur.execute("INSERT INTO categories (name) VALUES (?)", (project_name,))
+    conn.commit()
+    
+    # Fetch updated categories data
+    cur.execute("SELECT id, name FROM categories")
+    categories = cur.fetchall()
+    categories = [{'id': row[0], 'name': row[1]} for row in categories]
+    
+    return jsonify({'message': 'Project added successfully', 'categories': categories})
+
+# Endpoint to rename a project
+@app.route('/rename_project', methods=['POST'])
+def rename_project():
+    old_name = request.form['old_name']
+    new_name = request.form['newName']
+    cur.execute("UPDATE categories SET name=? WHERE name=?", (new_name, old_name))
+    conn.commit()
+    
+    # Fetch updated categories data
+    cur.execute("SELECT id, name FROM categories")
+    categories = cur.fetchall()
+    categories = [{'id': row[0], 'name': row[1]} for row in categories]
+    
+    return jsonify({'message': 'Project renamed successfully', 'categories': categories})
 
 if __name__ == '__main__':
     app.run(debug=True)
